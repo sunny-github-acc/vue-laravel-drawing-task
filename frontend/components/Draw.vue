@@ -103,6 +103,42 @@
         <b-button class="mt-2" variant="success" v-on:click="save()"
           >SAVE</b-button
         >
+        <b-button
+          id="show-btn"
+          class="mt-2"
+          variant="danger"
+          @click="$bvModal.show('bv-modal')"
+          >Reset</b-button
+        >
+
+        <b-modal id="bv-modal" hide-footer>
+          <div class="d-block text-center">
+            <h3>Are you sure you want to reset your drawing?</h3>
+          </div>
+          <b-button class="mt-3" variant="danger" block @click="reset($bvModal)"
+            >Reset drawing</b-button
+          >
+        </b-modal>
+
+        <b-form-group
+          id="fieldset-2"
+          class="mt-4"
+          description="Load saved drawing by title"
+          label-for="input-2"
+          :invalid-feedback="invalidLoad"
+          :state="stateLoad"
+        >
+          <b-form-input
+            id="input-1"
+            v-model="load"
+            :state="stateLoad"
+            @keydown="onChangeLoad"
+            trim
+          ></b-form-input>
+        </b-form-group>
+        <b-button class="mt-2" variant="success" v-on:click="loadDrawings()"
+          >LOAD</b-button
+        >
       </b-card>
     </b-row>
   </b-container>
@@ -128,11 +164,27 @@ export default {
         return "Enter no more than 25 characters.";
       }
     },
+    stateLoad() {
+      if (!this.showLoadError || this.loading) return null;
+      if (this.load === this.download) {
+        return true;
+      }
+      return false;
+    },
+    invalidLoad() {
+      if (this.load != this.download) {
+        return "Did not find such drawing";
+      }
+    },
   },
   data() {
     return {
       title: "",
+      load: "",
+      loading: false,
+      download: "",
       showInputError: false,
+      showLoadError: false,
       configKonva: {
         width: 200,
         height: 200,
@@ -219,11 +271,63 @@ export default {
         this.isCircle = true;
       }
     },
-    save() {
+    async save() {
       this.showInputError = true;
+      const drawing = {
+        lines: this.lines,
+        recs: this.recs,
+        circles: this.circles,
+      };
+      const requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: this.title,
+          drawing: JSON.stringify({ drawing }),
+        }),
+      };
+
+      await fetch(`http://localhost:8000/api/drawings`, requestOptions).then(
+        (response) => console.log(response)
+      );
+    },
+    async loadDrawings() {
+      this.showLoadError = true;
+      this.loading = true;
+
+      const requestOptions = {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      };
+
+      await fetch("http://localhost:8000/api/drawings", requestOptions)
+        .then((response) => response.json())
+        .then((data) => {
+          data.map(({ title, drawing }) => {
+            if (title === this.load) {
+              const draw = JSON.parse(drawing).drawing;
+              this.lines = draw.lines;
+              this.recs = draw.recs;
+              this.circles = draw.circles;
+              this.download = title;
+            }
+          });
+        })
+        .catch((error) => console.error(error));
+
+      this.loading = false;
     },
     onChange() {
       this.showInputError = false;
+    },
+    onChangeLoad() {
+      this.showLoadError = false;
+    },
+    reset(bvModal) {
+      bvModal.hide("bv-modal");
+      this.lines = [];
+      this.recs = [];
+      this.circles = [];
     },
   },
 };
