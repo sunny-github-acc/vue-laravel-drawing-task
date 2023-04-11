@@ -4,7 +4,9 @@ This project is meant to provide API solution to upload and download user data.
 
 ## Getting Started
 
-Install the packages running these commands in the terminal:
+### Add ** database.sqlite ** to ** vue-laravel-drawing-task/backend/database **
+
+### Install packages running these commands in the terminal:
 
 **
 npm run i
